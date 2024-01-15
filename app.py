@@ -7,7 +7,7 @@ import time
 import base64
 
 # Configurar la clave de la API de Gemini
-genai.configure(api_key="AIzaSyA4k6JoFNZsf8L1ixLMMRjEMoBPns5SHZk")
+genai.configure(api_key="your_google_api_key")
 
 # Función para mostrar texto con formato Markdown
 def to_markdown(text):
@@ -59,36 +59,27 @@ def main():
         # Preguntas y respuestas utilizando Gemini
         prompt = st.text_area("Ingresa tu pregunta:")
 
-        # Contenedor para mostrar imágenes y respuestas
-        container = st.container()
+        if st.button("Generar Respuestas") and prompt:
+            # Contenedor para mostrar imágenes y respuestas
+            container = st.container()
 
-        # Mostrar las imágenes horizontalmente
-        image_display = '<div style="overflow-x: scroll; white-space: nowrap;">'
-        for i, img in enumerate(images):
-            image_display += f'<img src="data:image/png;base64,{base64.b64encode(img.tobytes()).decode("utf-8")}" alt="Page {i + 1}" style="max-width: 100%; margin-right: 10px;">'
-        image_display += '</div>'
-        container.markdown(image_display, unsafe_allow_html=True)
+            # Mostrar las imágenes horizontalmente
+            for i, img in enumerate(images):
+                container.image(img, caption=f"Página {i + 1}", use_column_width=True)
 
-        # Espacio entre imágenes y respuestas
-        container.markdown("<br>", unsafe_allow_html=True)
+                # Generar contenido basado en la pregunta y la imagen
+                response = generate_gemini_content(prompt, model_name='gemini-pro-vision', image=img)
 
-        # Preguntar y obtener respuestas para cada imagen
-        for i, img in enumerate(images):
-            container.markdown(f"### Respuestas para la Página {i + 1}:")
+                # Mostrar la respuesta en Markdown si está disponible
+                if response and response.candidates:
+                    parts = response.candidates[0].content.parts
+                    generated_text = parts[0].text if parts else "No se generó contenido."
+                    container.markdown(to_markdown(generated_text))
+                else:
+                    container.warning("No se encontraron candidatos en la respuesta.")
 
-            # Generar contenido basado en la pregunta y la imagen
-            response = generate_gemini_content(prompt, model_name='gemini-pro-vision', image=img)
-
-            # Mostrar la respuesta en Markdown si está disponible
-            if response and response.candidates:
-                parts = response.candidates[0].content.parts
-                generated_text = parts[0].text if parts else "No se generó contenido."
-                container.markdown(to_markdown(generated_text))
-            else:
-                container.warning("No se encontraron candidatos en la respuesta.")
-
-            # Esperar 10 segundos antes de la siguiente solicitud
-            time.sleep(10)
+                # Esperar 10 segundos antes de la siguiente solicitud
+                time.sleep(10)
 
 if __name__ == "__main__":
     main()
