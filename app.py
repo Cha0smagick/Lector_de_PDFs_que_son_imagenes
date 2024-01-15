@@ -41,6 +41,15 @@ def generate_gemini_content(prompt, model_name='gemini-pro-vision', image=None):
         st.error(f"Error en la solicitud a Gemini: {str(e)}")
         return None
 
+# Función para descargar las respuestas acumuladas como un archivo .txt
+def download_responses_as_txt(prompt, all_responses):
+    file_content = f"Pregunta: {prompt}\n\n{all_responses}"
+
+    # Descargar el archivo
+    b64 = base64.b64encode(file_content.encode()).decode()
+    href = f'<a href="data:file/txt;base64,{b64}" download="respuestas.txt">Descargar Respuestas</a>'
+    st.markdown(href, unsafe_allow_html=True)
+
 # Función principal
 def main():
     st.title("PDF to Image Converter with Gemini API")
@@ -62,6 +71,9 @@ def main():
         if st.button("Generar Respuestas") and prompt:
             # Contenedor para mostrar imágenes y respuestas
             container = st.container()
+            
+            # Variable para acumular respuestas
+            all_responses = ""
 
             # Mostrar las imágenes horizontalmente
             for i, img in enumerate(images):
@@ -72,14 +84,21 @@ def main():
 
                 # Mostrar la respuesta en Markdown si está disponible
                 if response and response.candidates:
-                    parts = response.candidates[0].content.parts
-                    generated_text = parts[0].text if parts else "No se generó contenido."
-                    container.markdown(to_markdown(generated_text))
+                    for i, parts in enumerate(response.candidates[0].content.parts):
+                        generated_text = parts.text if parts else "No se generó contenido."
+                        container.markdown(f"Respuesta {i + 1}:\n{to_markdown(generated_text)}")
+
+                        # Acumular respuestas
+                        all_responses += f"\nRespuesta {i + 1}:\n{generated_text}\n"
+
                 else:
                     container.warning("No se encontraron candidatos en la respuesta.")
 
                 # Esperar 10 segundos antes de la siguiente solicitud
                 time.sleep(10)
+
+            # Botón de descarga
+            download_responses_as_txt(prompt, all_responses)
 
 if __name__ == "__main__":
     main()
